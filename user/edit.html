@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link href="../css/main.css" rel="stylesheet">
+    <script src="../js/vue.js"></script>
+    <script src="../js/axios.js"></script>
+    <script src="../js/fun.js"></script>
+</head>
+<body>
+<div id="app">
+    <div class="tool">
+        <div class="toolHead">
+            <div class="name">
+                <template v-if="user.id == 0">新增</template>
+                <template v-else>修改</template>
+                用户
+            </div>
+        </div>
+        <div>
+            <button id="button_goBack" class="btn1 btn1-primary" onclick="location.replace('./')">返回</button>
+        </div>
+    </div>
+    <div>
+        <table border="0" class="editTb">
+            <tr>
+                <td>用户名：</td>
+                <td><input v-model="user.username"/></td>
+            </tr>
+            <tr>
+                <td>所在部门：</td>
+                <td>
+                    <select v-model="user.departmentId">
+                        <option v-for="department in departments" v-text="department.name"
+                                :value="department.id"></option>
+                    </select>
+                </td>
+            </tr>
+            <tr>
+                <td>所属角色：</td>
+                <td>
+                    <select v-model="user.roleId">
+                        <option v-for="role in roles" v-text="role.name" :value="role.id"></option>
+                    </select>
+                </td>
+            </tr>
+            <tr>
+                <td>姓名：</td>
+                <td><input v-model="user.realname"/></td>
+            </tr>
+            <tr>
+                <td>年龄：</td>
+                <td><input v-model="user.age" type="number"/></td>
+            </tr>
+            <tr>
+                <td>电话号码：</td>
+                <td><input v-model="user.mobile" maxlength="11"/></td>
+            </tr>
+            <tr>
+                <td>性别：</td>
+                <td>
+                    <label><input type="radio" v-model="user.sex" value="男"/> 男</label>
+                    <label><input type="radio" v-model="user.sex" value="女"/> 女</label>
+                </td>
+            </tr>
+            <tr>
+                <td>状态：</td>
+                <td>
+                    <label><input type="radio" v-model="user.state" value="0"/> 正常</label>
+                    <label><input type="radio" v-model="user.state" value="1"/> 禁用</label>
+                </td>
+            </tr>
+            <tr>
+                <td>权限配置：</td>
+                <td>
+                    <label v-for="authority in authoritys" class="chkAuthority">
+                        <input type="checkbox" v-model="authority.checked">{{authority.name}}
+                    </label>
+                </td>
+            </tr>
+            <tr>
+                <td></td>
+                <td>
+                    <button class="btn btn-success" @click="submitSave()">保存</button>
+                </td>
+            </tr>
+        </table>
+    </div>
+</div>
+<script>
+    const app = {
+        setup() {
+
+            //从URL参数中获取ID值
+            let id = getQueryString("id");
+            if (id == null) id = 0;
+            console.log("接收到的ID：", id);
+
+            const departments = Vue.ref([]);    //部门集合
+            const roles = Vue.ref([]);          //角色集合
+
+            //用户对象
+            const user = Vue.ref({
+                id,
+                username: "",
+                departmentId: 0,
+                roleId: 0,
+                realname: "",
+                sex: "男",
+                age: "",
+                mobile: "",
+                state: 0,
+                authority: ""
+            });
+
+            /**
+             * 获取部门数据
+             */
+            const getDepartmentInfo = () => {
+                axios.get("/api/admin/department", {
+                    headers: {
+                        token: localStorage.getItem("token")
+                    }
+                }).then(response => {
+                    departments.value = response.data.value;
+                    user.value.departmentId = departments.value[0].id;  //将部门集合的第一个元素的id值赋值给用户对象的departmentId属性
+                })
+            }
+
+            getDepartmentInfo();
+
+            /**
+             * 获取角色数据
+             */
+            const getRoleInfo = () => {
+                axios.get("/api/admin/role", {
+                    headers: {
+                        token: localStorage.getItem("token")
+                    }
+                }).then(response => {
+                    roles.value = response.data.value;
+                    user.value.roleId = roles.value[0].id;  //将角色集合的第一个元素的id值赋值给用户对象的departmentId属性
+                })
+            }
+
+            getRoleInfo();
+
+
+            /**
+             * 获取用户数据
+             */
+            const getUserInfo = () => {
+                axios.get("/api/admin/user/get/" + id, {
+                    headers: {
+                        token: localStorage.getItem("token")
+                    }
+                }).then(response => {
+                    user.value = response.data.value;
+                    console.log("赋完值的user对象,", user.value);
+                    //当获取完数据字典后，当当前用户的权限字符串不为“”的时候
+                    if (user.value.authority != "") {
+                        const userAuthoritys = user.value.authority.split(",");
+                        console.log("拆分后的用户权限数组：", userAuthoritys);
+                        console.log("权限字典的数据：", authoritys.value);
+                        //先循环拆分后用户权限数组
+                        for (const userAuthority of userAuthoritys) {
+                            //通过权限字典数组的find方法，找到对应code的元素
+                            let authority = authoritys.value.find(item => item.code == userAuthority);
+                            //给对应code的元素添加一个checked属性，赋值为true
+                            authority.checked = true;
+                        }
+                    }
+                })
+            }
+
+            const authoritys = Vue.ref([]); //权限字典
+
+            /**
+             * 获取权限字典数据
+             */
+            const getAuthoritys = () => {
+                axios.get("/api/admin/authority", {
+                    headers: {
+                        token: localStorage.getItem("token")
+                    }
+                }).then(response => {
+                    authoritys.value = response.data.value;
+                    if (id > 0) {
+                        //操作是修改，去调用获取用户数据的方法
+                        getUserInfo();
+                    }
+                })
+            }
+
+            /**
+             * 提交保存
+             */
+            const submitSave = () => {
+                console.log("authoritys", authoritys.value);
+                let userAuthority = "";
+                for (const authority of authoritys.value) {
+                    if (authority.checked) {
+                        console.log("选中的权限：", authority);
+                        userAuthority += "," + authority.code;
+                    }
+                }
+                if (userAuthority.startsWith(",")) userAuthority = userAuthority.substring(1);
+                console.log("最终生成的权限字符串：", userAuthority);
+                //将最终拼接好的权限字符串赋值给user对象的authority属性
+                user.value.authority = userAuthority;
+                console.log("最终的user对象属性：", user.value);
+                //请求接口
+                axios.post("/api/admin/user/save", user.value, {
+                    headers: {
+                        token: localStorage.getItem("token")
+                    }
+                }).then(response => {
+                    alert(response.data.message);
+                    location.replace("./");
+                }).catch(error => {
+                    alert(error.response.data.message);
+                })
+            }
+
+            getAuthoritys();
+
+            return {
+                departments, roles,
+                user, authoritys,
+                submitSave
+            }
+        }
+    }
+    Vue.createApp(app).mount("#app");
+</script>
+</body>
+</html>

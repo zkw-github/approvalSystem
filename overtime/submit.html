@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link href="../css/main.css" rel="stylesheet">
+    <script src="../js/vue.js"></script>
+    <script src="../js/axios.js"></script>
+    <script src="../js/fun.js"></script>
+</head>
+<body>
+<div id="app">
+    <div class="tool">
+        <div class="toolHead">
+            <div class="name">
+                提交申请
+            </div>
+        </div>
+        <div>
+            <button id="button_goBack" class="btn1 btn1-primary" onclick="location.replace('./')">返回</button>
+        </div>
+    </div>
+    <div>
+        <table border="0" class="editTb">
+            <tr>
+                <td>加班类型：</td>
+                <td>
+                    <select v-model="apply.typeId">
+                        <option v-for="type in types" v-text="type.name" :value="type.id"></option>
+                    </select>
+                </td>
+            </tr>
+            <tr>
+                <td>开始时间：</td>
+                <td>
+                    <input type="datetime-local" v-model="apply.starttime">
+                </td>
+            </tr>
+            <tr>
+                <td>结束时间：</td>
+                <td>
+                    <input type="datetime-local" v-model="apply.endtime">
+                </td>
+            </tr>
+            <tr>
+                <td>加班原因：</td>
+                <td>
+                    <textarea rows="5" cols="100" v-model="apply.reason"></textarea>
+                </td>
+            </tr>
+            <tr>
+                <td></td>
+                <td>
+                    <button class="btn btn-success" @click="submitApply()">提交申请</button>
+                </td>
+            </tr>
+        </table>
+    </div>
+</div>
+<script>
+    const app = {
+        setup() {
+
+            const types = Vue.ref([]);          //加班类型集合
+
+            //申请对象
+            const apply = Vue.ref({
+                typeId: 1,
+                starttime: "",
+                endtime: "",
+                reason: "",
+            });
+
+            /**
+             * 获取加班类型数据
+             */
+            const getTypes = () => {
+                axios.get("/api/admin/overtime/types", {
+                    headers: {
+                        token: localStorage.getItem("token")
+                    }
+                }).then(response => {
+                    types.value = response.data.value;
+                })
+            }
+
+            getTypes();
+
+
+            /**
+             * 提交申请
+             */
+            const submitApply = () => {
+                axios.post("/api/admin/overtime/submit", apply.value, {
+                    headers: {
+                        token: localStorage.getItem("token")
+                    }
+                }).then(response => {
+                    alert("申请成功");
+                    location.replace("./");
+                })
+            }
+
+
+            return {
+                types, apply, submitApply
+            }
+        }
+    }
+    Vue.createApp(app).mount("#app");
+</script>
+</body>
+</html>

@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link href="../css/main.css" rel="stylesheet">
+    <script src="../js/vue.js"></script>
+    <script src="../js/axios.js"></script>
+</head>
+<body>
+<div id="app">
+    <div class="tool">
+        <div class="toolHead">
+            <div class="name">请假管理</div>
+            <div>
+            </div>
+        </div>
+        <div class="buttons">
+            <button class="btn4 btn4-success" onclick="location.replace('submit.html')">提交请假申请</button>
+        </div>
+    </div>
+    <div v-if="leaveApplyPage !== null">
+        <table class="mainTb">
+            <tr>
+                <th width="12%">发起人</th>
+                <th width="12%">假期类型</th>
+                <th width="12%">开始时间</th>
+                <th width="12%">结束时间</th>
+                <th width="20%">请假原因</th>
+                <th width="20%">状态</th>
+                <th>操作</th>
+            </tr>
+            <tr v-for="leaveApply in leaveApplyPage.records">
+                <td v-text="leaveApply.realname"></td>
+                <td v-text="leaveApply.type"></td>
+                <td v-text="leaveApply.starttime"></td>
+                <td v-text="leaveApply.endtime"></td>
+                <td v-text="leaveApply.reason"></td>
+                <td>
+                    {{leaveApply.state}}<br/>
+                    <div v-for="task in leaveApply.task">
+                        【{{task.taskName}}】 <span
+                            v-for="deposeUser in task.deposeUsers">&nbsp; | &nbsp;{{deposeUser}}</span>
+                    </div>
+                </td>
+                <td>
+                    <button class="btn btn-success" @click="showDisposeReason(leaveApply.dispose_reason)"
+                            v-if="leaveApply.dispose_reason != undefined">查看意见
+                    </button>
+                </td>
+            </tr>
+        </table>
+        <br/>
+        <div class="pager">
+            <button id="prePageButton" @click="setPageIndex(-1)" :disabled="pageIndex == 1">上一页</button>
+            共 {{leaveApplyPage.total}} 条数据
+            当前第 {{pageIndex}} / {{leaveApplyPage.pages}} 页
+            <button id="nextPageButton" @click="setPageIndex(1)" :disabled="pageIndex === leaveApplyPage.pages">下一页</button>
+        </div>
+    </div>
+    <div v-else>Loading...</div>
+</div>
+<script>
+    const app = {
+        setup() {
+
+            const pageIndex = Vue.ref(1);   //当前页码
+            const pageSize = 12;                //页大小
+            const username = Vue.ref("");       //用户名
+
+            const leaveApplyPage = Vue.ref(null);
+
+
+            /**
+             * 获取请假数据
+             */
+            const getLeaveApplyInfo = () => {
+                axios.post("/api/admin/leaveApply", {
+                    pageIndex: pageIndex.value,
+                    pageSize: pageSize,
+                    username: username.value
+                }, {
+                    headers: {
+                        token: localStorage.getItem("token")
+                    }
+                }).then(response => {
+                    console.log(response.data);
+                    leaveApplyPage.value = response.data.value;
+                })
+            }
+
+            /**
+             * 设置页码
+             * @param rate
+             */
+            const setPageIndex = (rate) => {
+                pageIndex.value += rate;
+                getUserInfo();
+            }
+
+            /**
+             * 显示驳回原因
+             */
+            const showDisposeReason = (reason) => {
+                alert(reason)
+            }
+
+            getLeaveApplyInfo();
+
+            return {
+                pageIndex, pageSize, username, setPageIndex, leaveApplyPage, showDisposeReason
+            }
+        }
+    }
+    Vue.createApp(app).mount("#app");
+</script>
+</body>
+</html>

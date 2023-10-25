@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link href="../css/main.css" rel="stylesheet">
+    <script src="../js/vue.js"></script>
+    <script src="../js/axios.js"></script>
+</head>
+<body>
+<div id="app">
+    <div class="tool">
+        <div class="toolHead">
+            <div class="name">流程管理</div>
+        </div>
+        <div class="buttons">
+        </div>
+    </div>
+    <table class="mainTb">
+        <tr>
+            <th>流程名称</th>
+            <th>部署ID</th>
+            <th>定义ID</th>
+            <th>操作</th>
+        </tr>
+        <tr v-for="flow in flows">
+            <td v-text="flow.flowName"></td>
+            <td v-text="flow.deploymentId"></td>
+            <td v-text="flow.definitionId"></td>
+            <td>
+                <button class="btn2 btn2-primary ml-3 mr-3" @click="editFlow(flow.id)">修改</button>
+                <button class="btn2 btn2-primary ml-3 mr-3" @click="showFlow(flow.flowName, flow.deploymentId)">查看</button>
+            </td>
+        </tr>
+    </table>
+    <br/>
+    <div v-text="flowName"></div>
+    <div v-html="svgImg"></div>
+</div>
+<script>
+    const app = {
+        setup() {
+
+            const flows = Vue.ref([]);    //流程集合
+            const svgImg = Vue.ref(null);    //流程图片
+            const flowName = Vue.ref("");     //查看的流程名称
+
+            /**
+             * 获取流程数据
+             */
+            const getFlows = () => {
+                axios.get("/api/admin/flow", {
+                    headers: {
+                        token: localStorage.getItem("token")
+                    }
+                }).then(response => {
+                    flows.value = response.data.value;
+                })
+            }
+
+            getFlows();
+
+            /**
+             * 修改流程
+             * @param id
+             * @param name
+             */
+            const editFlow = (id) => {
+                location.replace("edit.html?id=" + id);
+            }
+
+            /**
+             * 查看流程
+             * @param deploymentId
+             */
+            const showFlow = (fname, deploymentId) => {
+                flowName.value = fname;
+                axios.get("/api/admin/flow/getSvg/" + deploymentId, {
+                    headers: {
+                        Token: localStorage.getItem("token")
+                    },
+                })
+                    .then(response => {
+                        svgImg.value = response.data;
+                    })
+                    .catch(error => {
+                        console.log(error.response.data);
+                        alert(error.response.data.message);
+                        //可以跳转到别的页面去进行下一步处理
+                    })
+            }
+
+            return {
+                flows, editFlow, showFlow, svgImg, flowName
+            }
+        }
+    }
+    Vue.createApp(app).mount("#app");
+</script>
+</body>
+</html>

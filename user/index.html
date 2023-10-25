@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link href="../css/main.css" rel="stylesheet">
+    <script src="../js/vue.js"></script>
+    <script src="../js/axios.js"></script>
+</head>
+<body>
+<div id="app">
+    <div class="tool">
+        <div class="toolHead">
+            <div class="name">用户管理</div>
+            <div>
+                部门筛选：
+                <select v-model="departmentId">
+                    <option value="0">--全部--</option>
+                    <option v-for="department in departments" v-text="department.name" :value="department.id"></option>
+                </select>&nbsp;&nbsp;
+                角色筛选：
+                <select v-model="roleId">
+                    <option value="0">--全部--</option>
+                    <option v-for="role in roles" v-text="role.name" :value="role.id"></option>
+                </select>&nbsp;&nbsp;
+                <input class="search-form" v-model="username" placeholder="用户名/姓名">&nbsp;
+                <button class="btn5 btn5-primary" @click="search">搜索</button>
+            </div>
+        </div>
+        <div class="buttons">
+            <button class="btn3 btn3-success" onclick="location.replace('edit.html')">新增用户</button>
+        </div>
+    </div>
+    <div v-if="userPage !== null">
+        <table class="mainTb">
+            <tr>
+                <th width="15%">用户名</th>
+                <th width="15%">姓名</th>
+                <th width="15%">所在部门</th>
+                <th width="15%">所属角色</th>
+                <th width="10%">性别</th>
+                <th width="10%">年龄</th>
+                <th>操作</th>
+            </tr>
+            <tr v-for="user in userPage.records">
+                <td v-text="user.username"></td>
+                <td v-text="user.realname"></td>
+                <td v-text="user.departmentname"></td>
+                <td v-text="user.rolename"></td>
+                <td v-text="user.sex"></td>
+                <td v-text="user.age"></td>
+                <td>
+                    <button class="btn2 btn2-primary ml-3 mr-3" @click="edituser(user.id)">修改</button>
+                    <button class="btn2 btn3-primary ml-3 mr-3" @click="removeuser(user.id)">移除</button>
+                    <button class="btn3 btn3-success" @click="resetPwd(user.id)">重置密码</button>
+                </td>
+            </tr>
+        </table>
+        <br/>
+        <div class="pager">
+            <button id="prePageButton" @click="setPageIndex(-1)" :disabled="pageIndex == 1">上一页</button>
+            共 {{userPage.total}} 条数据
+            当前第 {{pageIndex}} / {{userPage.pages}} 页
+            <button id="nextPageButton" @click="setPageIndex(1)" :disabled="pageIndex === userPage.pages">下一页</button>
+        </div>
+    </div>
+    <div v-else>Loading...</div>
+</div>
+<script>
+    const app = {
+        setup() {
+
+            const departments = Vue.ref([]);    //部门集合
+            const roles = Vue.ref([]);          //角色集合
+
+            const pageIndex = Vue.ref(1);       //当前页码
+            const pageSize = 12;                //页大小
+            const departmentId = Vue.ref(0);    //部门ID
+            const roleId = Vue.ref(0);          //角色ID
+            const username = Vue.ref("");       //用户名
+
+            const userPage = Vue.ref(null);
+
+            /**
+             * 获取部门数据
+             */
+            const getDepartmentInfo = () => {
+                axios.get("/api/admin/department", {
+                    headers: {
+                        token: localStorage.getItem("token")
+                    }
+                }).then(response => {
+                    departments.value = response.data.value;
+                })
+            }
+
+            getDepartmentInfo();
+
+            /**
+             * 获取角色数据
+             */
+            const getRoleInfo = () => {
+                axios.get("/api/admin/role", {
+                    headers: {
+                        token: localStorage.getItem("token")
+                    }
+                }).then(response => {
+                    roles.value = response.data.value;
+                })
+            }
+
+            getRoleInfo();
+
+            /**
+             * 获取用户数据
+             */
+            const getUserInfo = () => {
+                axios.post("/api/admin/user", {
+                    pageIndex: pageIndex.value,
+                    pageSize: pageSize,
+                    departmentId: departmentId.value,
+                    roleId: roleId.value,
+                    username: username.value
+                }, {
+                    headers: {
+                        token: localStorage.getItem("token")
+                    }
+                }).then(response => {
+                    console.log(response.data);
+                    userPage.value = response.data.value;
+                })
+            }
+
+            /**
+             * 搜索
+             */
+            const search = () => {
+                pageIndex.value = 1;
+                getUserInfo();
+            }
+
+            /**
+             * 修改用户
+             */
+            const edituser = (id) => {
+                location.replace('edit.html?id=' + id);
+            }
+
+            /**
+             * 重置密码
+             * @param id
+             */
+            const resetPwd = (id) => {
+                if (confirm("确认重置密码吗？")) {
+                    axios.get("/api/admin/user/resetPwd/" + id, {
+                        headers: {
+                            token: localStorage.getItem("token")
+                        }
+                    }).then(response => {
+                        alert(response.data.message);
+                        getUserInfo();
+                    }).catch(error => {
+                        alert(error.response.data.message);
+                    })
+                }
+            }
+
+            /**
+             * 移除用户
+             * @param id
+             */
+            const removeuser = (id) => {
+                if (confirm("确认删除吗？")) {
+                    axios.post("/api/admin/user/remove", "id=" + id, {
+                        headers: {
+                            token: localStorage.getItem("token")
+                        }
+                    }).then(response => {
+                        alert("删除成功");
+                        getUserInfo();
+                    }).catch(error => {
+                        alert(error.response.data.message);
+                    })
+                }
+            }
+
+            /**
+             * 设置页码
+             * @param rate
+             */
+            const setPageIndex = (rate) => {
+                pageIndex.value += rate;
+                getUserInfo();
+            }
+
+            /**
+             * 创建一个监听器，用于监听变量的变化
+             */
+            Vue.watch(() => [departmentId.value, roleId.value], () => {
+                console.log("监听的变量发生变化了.");
+                search();
+            })
+
+
+            getUserInfo();
+
+            return {
+                departments,
+                roles,
+                pageIndex,
+                pageSize,
+                departmentId,
+                roleId,
+                username,
+                userPage,
+                edituser,
+                removeuser,
+                setPageIndex,
+                search,
+                resetPwd
+            }
+        }
+    }
+    Vue.createApp(app).mount("#app");
+</script>
+</body>
+</html>

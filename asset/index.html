@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link href="../css/main.css" rel="stylesheet">
+    <script src="../js/vue.js"></script>
+    <script src="../js/axios.js"></script>
+</head>
+<body>
+<div id="app">
+    <div class="tool">
+        <div class="toolHead">
+            <div class="name">资产管理</div>
+            <div>
+                <input v-model="name" placeholder="资产名称">&nbsp;
+                <button class="btn5 btn5-primary" @click="search">搜索</button>
+            </div>
+            &nbsp;&nbsp;&nbsp;
+            <div>
+                <input  v-model="type" placeholder="资产类型">&nbsp;
+                <button class="btn5 btn5-primary" @click="search">搜索</button>
+            </div>
+        </div>
+        <div class="buttons">
+            <button class="btn3 btn3-success" onclick="location.replace('edit.html')">新增资产</button>
+        </div>
+    </div>
+    <div v-if="assetPage !== null">
+        <table class="mainTb">
+            <tr>
+                <th width="15%">资产名称</th>
+                <th width="15%">资产类型</th>
+                <th width="10%">资产状态</th>
+                <th width="10%">资产数量</th>
+                <th width="10%">资产单位</th>
+                <th width="10%">资产单价</th>
+                <th width="10%">资产折损率</th>
+                <th>操作</th>
+            </tr>
+            <tr v-for="asset in assetPage.records">
+                <td v-text="asset.name"></td>
+                <td v-text="asset.type"></td>
+                <td v-text="asset.state"></td>
+                <td v-text="asset.mount"></td>
+                <td v-text="asset.unity"></td>
+                <td v-text="asset.price"></td>
+                <td v-text="asset.discount_rate"></td>
+                <td>
+                    <button class="btn2 btn2-primary ml-3 mr-3" @click="editAsset(asset.id)">修改</button>
+                    <button class="btn2 btn3-primary ml-3 mr-3" @click="removeAsset(asset.id)">移除</button>
+                </td>
+            </tr>
+        </table>
+        <br/>
+        <div class="pager">
+            <button id="prePageButton" @click="setPageIndex(-1)" :disabled="pageIndex == 1">上一页</button>
+            共 {{assetPage.total}} 条数据
+            当前第 {{pageIndex}} / {{assetPage.pages}} 页
+            <button id="nextPageButton" @click="setPageIndex(1)" :disabled="pageIndex === assetPage.pages">下一页</button>
+        </div>
+    </div>
+    <div v-else>Loading...</div>
+</div>
+<script>
+    const app = {
+        setup() {
+
+            const pageIndex = Vue.ref(1);   //当前页码
+            const pageSize = 12;            //页大小
+            const name = Vue.ref("");       //资产名称
+            const type = Vue.ref("");       //资产类型
+            const assetPage = Vue.ref(null);
+
+            /**
+             * 获取资产数据
+             */
+            const getAssetInfo = () => {
+                axios.post("/api/admin/asset", {
+                    pageIndex: pageIndex.value,
+                    pageSize: pageSize,
+                    name: name.value,
+                    type: type.value
+                }, {
+                    headers: {
+                        token: localStorage.getItem("token")
+                    }
+                }).then(response => {
+                    console.log(response.data);
+                    assetPage.value = response.data.value;
+                })
+            }
+
+            /**
+             * 搜索
+             */
+            const search = () => {
+                pageIndex.value = 1;
+                getAssetInfo();
+            }
+
+            /**
+             * 修改资产
+             */
+            const editAsset = (id) => {
+                location.replace('edit.html?id=' + id);
+            }
+
+            /**
+             * 移除资产
+             * @param id
+             */
+            const removeAsset = (id) => {
+                if (confirm("确认删除吗？")) {
+                    axios.post("/api/admin/asset/remove", "id=" + id, {
+                        headers: {
+                            token: localStorage.getItem("token")
+                        }
+                    }).then(response => {
+                        alert("删除成功");
+                        getAssetInfo();
+                    }).catch(error => {
+                        alert(error.response.data.message);
+                    })
+                }
+            }
+
+            /**
+             * 设置页码
+             * @param rate
+             */
+            const setPageIndex = (rate) => {
+                pageIndex.value += rate;
+                getAssetInfo();
+            }
+
+
+            getAssetInfo();
+
+            return {
+                assetPage, name, type, pageIndex,
+                search, editAsset, removeAsset, setPageIndex,
+            }
+        }
+    }
+    Vue.createApp(app).mount("#app");
+</script>
+</body>
+</html>

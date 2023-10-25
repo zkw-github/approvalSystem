@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link href="css/login.css" rel="stylesheet">
+    <script src="js/vue.js"></script>
+    <script src="js/axios.js"></script>
+</head>
+<body>
+<div id="app">
+    <div class="login">
+        <div class="header">登录</div>
+        <div class="container">
+            <input type="text" placeholder="请输入用户名" v-model="user.username">
+            <span class="left"></span>
+            <span class="right"></span>
+            <span class="top"></span>
+            <span class="bottom"></span>
+        </div>
+        <div class="container1">
+            <input type="password" placeholder="请输入密码" v-model="user.password">
+            <span class="left"></span>
+            <span class="right"></span>
+            <span class="top"></span>
+            <span class="bottom"></span>
+        </div>
+        <div class="btn" @click="login">登录</div>
+    </div>
+</div>
+<script>
+    const app = {
+
+        setup() {
+
+            let user = Vue.ref({
+                username: "",
+                password: ""
+            })
+            console.log(user.value.username)
+            /**
+             * 登录方法
+             */
+            const login = () => {
+                //1. 获取输入的邮箱与密码
+                console.log("登录信息：", user.value);
+                //2. 请求登录接口，根据接口的响应返回值来分别做出处理
+                axios.post("/api/login", user.value)
+                    .then(response => {
+                        console.log("返回数据：", response.data);
+                        localStorage.setItem("username", user.value.username);
+                        localStorage.setItem("token", response.data.value.token);
+                        localStorage.setItem("role", JSON.stringify(response.data.value.role));
+                        localStorage.setItem("authority", response.data.value.authority);
+                        location.replace("/");
+                    }).catch(error => {
+                    alert(error.response.data.message);
+                })
+
+
+                console.log("发送登录验证...");
+            }
+
+            return {
+                user,
+                login
+            }
+        }
+
+    }
+    Vue.createApp(app).mount("#app");
+</script>
+</body>
+</html>

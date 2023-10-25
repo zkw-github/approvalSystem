@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link href="../css/main.css" rel="stylesheet">
+    <script src="../js/vue.js"></script>
+    <script src="../js/axios.js"></script>
+    <script src="../js/fun.js"></script>
+</head>
+<body>
+<div id="app">
+    <div class="tool">
+        <div class="toolHead">
+            <div class="name">修改流程</div>
+        </div>
+        <div class="buttons">
+            <button id="button_goBack" class="btn1 btn1-primary" onclick="location.replace('./')">返回</button>
+        </div>
+    </div>
+    <div>
+        <table border="0" class="editTb">
+            <tr>
+                <td>流程名称：</td>
+                <td v-text="flowName"></td>
+            </tr>
+            <tr>
+                <td>BPMN文件：</td>
+                <td class="btn6-success">
+                    <input type="file" @change="uploadBpmnChange">
+                </td>
+            </tr>
+            <tr>
+                <td>SVG文件：</td>
+                <td class="btn6-success">
+                    <input type="file" @change="uploadSvgChange">
+                </td>
+            </tr>
+            <tr>
+                <td></td>
+                <td>
+                    <button class="btn btn-success" @click="submitSave()">保存</button>
+                </td>
+            </tr>
+        </table>
+    </div>
+</div>
+<script>
+    const app = {
+        setup() {
+
+            //从URL参数中获取ID值
+            let id = getQueryString("id");
+            if (id == null) id = 0;
+            console.log("接收到的ID：", id);
+            const flowName = Vue.ref("");
+
+            axios.post("/api/admin/flow/get", "id=" + id, {
+                headers: {
+                    token: localStorage.getItem("token")
+                }
+            }).then(response => {
+                flowName.value = response.data.value.flowName;
+            })
+
+            const bpmnFile = Vue.ref(null);   //保存上传bpmn文件的变量
+            const svgFile = Vue.ref(null);   //保存上传svg文件的变量
+
+            /**
+             * 当选择图片时触发的事件
+             */
+            const uploadBpmnChange = event => {
+                bpmnFile.value = event.target.files[0];  //将选择的文件地址赋值给bpmnFile
+            }
+
+            const uploadSvgChange = event => {
+                svgFile.value = event.target.files[0];  //将选择的文件地址赋值给svgFile
+            }
+
+            /**
+             * 提交保存
+             */
+            const submitSave = () => {
+                const formData = new FormData();
+                formData.append("flowName", flowName.value);
+                formData.append("bpmnPartFile", bpmnFile.value);
+                formData.append("svgPartFile", svgFile.value);
+
+                axios.post("/api/admin/flow/deploy", formData, {
+                    headers: {
+                        Token: localStorage.getItem("token")
+                    }
+                })
+                    .then(response => {
+                        alert(response.data.message);
+                        location.replace("./");
+                    }).catch(error => {
+                    alert(error.response.data.message);
+                })
+            }
+
+            return {
+                id, flowName, uploadBpmnChange, uploadSvgChange, submitSave
+            }
+        }
+    }
+    Vue.createApp(app).mount("#app");
+</script>
+</body>
+</html>

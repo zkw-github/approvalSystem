@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link href="../css/main.css" rel="stylesheet">
+    <script src="../js/vue.js"></script>
+    <script src="../js/axios.js"></script>
+    <script src="../js/fun.js"></script>
+</head>
+<body>
+<div id="app">
+    <div class="tool">
+        <div class="toolHead">
+            <div class="name">
+                <template v-if="asset.id == 0">新增</template>
+                <template v-else>修改</template>
+                资产
+            </div>
+        </div>
+        <div class="buttons">
+            <button id="button_goBack" class="btn1 btn1-primary" onclick="location.replace('./')">返回</button>
+        </div>
+    </div>
+    <div>
+        <table border="0" class="editTb">
+            <tr>
+                <td>资产名称：</td>
+                <td><input v-model="asset.name"/></td>
+            </tr>
+            <tr>
+                <td>资产类型：</td>
+                <td><input v-model="asset.type"/></td>
+            </tr>
+            <tr>
+                <td>资产状态：</td>
+                <td><input v-model="asset.state"/></td>
+            </tr>
+            <tr>
+                <td>资产单价：</td>
+                <td><input v-model="asset.price"/></td>
+            </tr>
+            <tr>
+                <td>资产数量：</td>
+                <td><input v-model="asset.mount"/></td>
+            </tr>
+            <tr>
+                <td>资产单位：</td>
+                <td><input v-model="asset.unity"/></td>
+            </tr>
+            <tr>
+                <td>资产折损率：</td>
+                <td><input v-model="asset.discountRate"/></td>
+            </tr>
+            <tr>
+                <td></td>
+                <td>
+                    <button class="btn btn-success" @click="submitSave()">保存</button>
+                </td>
+            </tr>
+        </table>
+    </div>
+</div>
+<script>
+    const app = {
+        setup() {
+
+            //从URL参数中获取ID值
+            let id = getQueryString("id");
+            if (id == null) id = 0;
+
+            //资产对象
+            const asset = Vue.ref({
+                id,
+                name: "",
+                type: "",
+                state: "",
+                price: 0,
+                mount: 0,
+                unity: "",
+                discountRate: ""
+            });
+
+
+            console.log(asset.value)
+
+            /**
+             * 根据ID获取资产数据
+             */
+            const getAssetInfo = () => {
+                axios.get("/api/admin/asset/get/" + id, {
+                    headers: {
+                        token: localStorage.getItem("token")
+                    }
+                }).then(response => {
+                    asset.value = response.data.value;
+                })
+
+            }
+
+            /**
+             * 提交保存
+             */
+            const submitSave = () => {
+                //请求接口
+                axios.post("/api/admin/asset/save", asset.value, {
+                    headers: {
+                        token: localStorage.getItem("token")
+                    }
+                }).then(response => {
+                    alert(response.data.message);
+                    location.replace("./");
+                }).catch(error => {
+                    alert(error.response.data.message);
+                })
+            }
+
+            if (id > 0) getAssetInfo();
+            return {
+                asset,
+                submitSave
+            }
+        }
+    }
+    Vue.createApp(app).mount("#app");
+</script>
+</body>
+</html>

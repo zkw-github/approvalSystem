@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link href="../css/main.css" rel="stylesheet">
+    <script src="../js/vue.js"></script>
+    <script src="../js/axios.js"></script>
+    <script src="../js/fun.js"></script>
+</head>
+<body>
+<div id="app">
+    <div class="tool">
+        <div class="toolHead">
+            <div class="name">请假审批</div>
+            <div>
+            </div>
+        </div>
+        <div class="buttons">
+            <button id="button_goBack" class="btn1 btn1-lg btn1-primary float-right mr-4" onclick="location.replace('./')">返回</button>
+        </div>
+    </div>
+    <div>
+        <table border="0" class="editTb" v-if="apply != null">
+            <tr>
+                <td>请假人：</td>
+                <td v-text="apply.realname"></td>
+            </tr>
+            <tr>
+                <td>假期类型：</td>
+                <td v-text="apply.type"></td>
+            </tr>
+            <tr>
+                <td>开始时间：</td>
+                <td v-text="apply.starttime"></td>
+            </tr>
+            <tr>
+                <td>结束时间：</td>
+                <td v-text="apply.endtime"></td>
+            </tr>
+            <tr>
+                <td>请假原因：</td>
+                <td>
+                    <textarea rows="5" cols="100" v-text="apply.reason" disabled></textarea>
+                </td>
+            </tr>
+            <tr>
+                <td>处理意见：</td>
+                <td>
+                    <input size="100" v-model="apply.disposeReason">
+                </td>
+            </tr>
+            <tr>
+                <td></td>
+                <td>
+                    <button class="btn btn-success" @click="submitApproval(true)">通过申请</button>&nbsp;&nbsp;&nbsp;&nbsp;
+                    <button class="btn btn-success" @click="submitApproval(false)">驳回申请</button>
+                </td>
+            </tr>
+        </table>
+    </div>
+</div>
+<script>
+    const app = {
+        setup() {
+            const processInstanceId = getQueryString("processInstanceId");  //获取到传递过来的流程实例ID
+            const taskId = getQueryString("taskId");  //获取到传递过来的任务ID
+            const apply = Vue.ref(null);    //需要审批的请求数据
+
+            axios.post("/api/admin/leaveApply/approval", "processInstanceId=" + processInstanceId, {
+                headers: {
+                    token: localStorage.getItem("token")
+                }
+            }).then(response => {
+                apply.value = response.data.value;
+            })
+
+            /**
+             * 提交审批
+             */
+            const submitApproval = (pass) => {
+                if (!pass && (apply.value.disposeReason == undefined || apply.value.disposeReason == "")) {
+                    alert("驳回时请填写处理意见");
+                }
+                axios.post("/api/admin/leaveApply/" + (pass ? "pass" : "reject") + "Dispose", {
+                    "leaveApplyId": apply.value.id,
+                    "disposeReason": apply.value.disposeReason,
+                    "taskID": taskId
+                }, {
+                    headers: {
+                        token: localStorage.getItem("token")
+                    }
+                }).then(response => {
+                    alert(response.data.message);
+                    location.replace("/welcome/");
+                })
+            }
+
+            return {
+                apply, submitApproval
+            }
+        }
+    }
+    Vue.createApp(app).mount("#app");
+</script>
+</body>
+</html>

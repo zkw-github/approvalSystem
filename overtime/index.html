@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link href="../css/main.css" rel="stylesheet">
+    <script src="../js/vue.js"></script>
+    <script src="../js/axios.js"></script>
+</head>
+<body>
+<div id="app">
+    <div class="tool">
+        <div class="toolHead">
+            <div class="name">加班管理</div>
+            <div>
+            </div>
+        </div>
+        <div class="buttons">
+            <button class="btn4 btn4-success" onclick="location.replace('submit.html')">提交加班申请</button>
+        </div>
+    </div>
+    <div v-if="overtimePage !== null">
+        <table class="mainTb">
+            <tr>
+                <th width="12%">发起人</th>
+                <th width="12%">加班类型</th>
+                <th width="12%">开始时间</th>
+                <th width="12%">结束时间</th>
+                <th width="20%">加班原因</th>
+                <th width="20%">状态</th>
+                <th>操作</th>
+            </tr>
+            <tr v-for="overtime in overtimePage.records">
+                <td v-text="overtime.realname"></td>
+                <td v-text="overtime.type"></td>
+                <td v-text="overtime.starttime"></td>
+                <td v-text="overtime.endtime"></td>
+                <td v-text="overtime.reason"></td>
+                <td>
+                    {{overtime.state}}<br/>
+                    <div v-for="task in overtime.task">
+                        【{{task.taskName}}】 <span
+                            v-for="deposeUser in task.deposeUsers">&nbsp; | &nbsp;{{deposeUser}}</span>
+                    </div>
+                </td>
+                <td>
+                    <button class="btn btn-success" @click="showDisposeReason(overtime.dispose_reason)"
+                            v-if="overtime.dispose_reason != undefined">查看意见
+                    </button>
+                </td>
+            </tr>
+        </table>
+        <br/>
+        <div class="pager">
+            <button id="prePageButton" @click="setPageIndex(-1)" :disabled="pageIndex == 1">上一页</button>
+            共 {{overtimePage.total}} 条数据
+            当前第 {{pageIndex}} / {{overtimePage.pages}} 页
+            <button id="nextPageButton" @click="setPageIndex(1)" :disabled="pageIndex === overtimePage.pages">下一页</button>
+        </div>
+    </div>
+    <div v-else>Loading...</div>
+</div>
+<script>
+    const app = {
+        setup() {
+
+            const pageIndex = Vue.ref(1);   //当前页码
+            const pageSize = 12;                //页大小
+            const username = Vue.ref("");       //用户名
+
+            const overtimePage = Vue.ref(null);
+
+
+            /**
+             * 获取加班数据
+             */
+            const getOvertimeInfo = () => {
+                axios.post("/api/admin/overtime", {
+                    pageIndex: pageIndex.value,
+                    pageSize: pageSize,
+                    username: username.value
+                }, {
+                    headers: {
+                        token: localStorage.getItem("token")
+                    }
+                }).then(response => {
+                    console.log(response.data);
+                    overtimePage.value = response.data.value;
+                })
+            }
+
+            /**
+             * 设置页码
+             * @param rate
+             */
+            const setPageIndex = (rate) => {
+                pageIndex.value += rate;
+                getUserInfo();
+            }
+
+            /**
+             * 显示驳回原因
+             */
+            const showDisposeReason = (reason) => {
+                alert(reason)
+            }
+
+            getOvertimeInfo();
+
+            return {
+                pageIndex, pageSize, username, setPageIndex, overtimePage, showDisposeReason
+            }
+        }
+    }
+    Vue.createApp(app).mount("#app");
+</script>
+</body>
+</html>
